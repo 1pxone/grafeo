@@ -33,6 +33,8 @@ fn binding_error_with_hint(message: impl Into<String>, hint: impl Into<String>) 
 enum Element {
     Node,
     Edge,
+    /// A path variable (`p = (a)-->(b)`).
+    Path,
 }
 
 /// Whether a variable holds a value of a known type that is not a node or an
@@ -46,9 +48,21 @@ fn holds_a_value(info: &VariableInfo) -> bool {
                 | LogicalType::Null
                 | LogicalType::Node
                 | LogicalType::Edge
-                | LogicalType::List(_)
                 | LogicalType::Path
         )
+}
+
+/// The type of a map value whose entries are not tracked.
+fn any_map() -> LogicalType {
+    LogicalType::Map {
+        key: Box::new(LogicalType::String),
+        value: Box::new(LogicalType::Any),
+    }
+}
+
+/// Whether a variable holds a path.
+fn holds_a_path(info: &VariableInfo) -> bool {
+    info.data_type == LogicalType::Path
 }
 
 /// Creates an "undefined variable" error (an invalid reference, GQLSTATUS
@@ -284,6 +298,12 @@ impl Binder {
                     if let Some(ref alias) = projection.alias {
                         // Determine the type from the expression
                         let data_type = self.infer_expression_type(&projection.expression);
+                        // A pattern's path variable (`p = (a)-->()-->(b)`),
+                        // which a projection inside the MATCH binds
+                        if project.pass_through_input && data_type == LogicalType::Path {
+                            self.bind_element(alias, Element::Path)?;
+                            continue;
+                        }
                         // Propagate node/edge status when projecting a variable
                         // or a Case that selects between node variables (used
                         // by optional() and union() translations).
@@ -691,15 +711,7 @@ impl Binder {
                     );
                 }
                 // Add the path alias variable to the context
-                self.context.add_variable(
-                    sp.path_alias.clone(),
-                    VariableInfo {
-                        name: sp.path_alias.clone(),
-                        data_type: LogicalType::Any, // Path is a complex type
-                        is_node: false,
-                        is_edge: false,
-                    },
-                );
+                self.bind_element(&sp.path_alias, Element::Path)?;
                 // Also add the path length variable for length(p) calls
                 let path_length_var = format!("_path_length_{}", sp.path_alias);
                 self.context.add_variable(
@@ -1124,11 +1136,22 @@ impl Binder {
             let conflict = match element {
                 Element::Node if info.is_edge => Some("is an edge, so it cannot also be a node"),
                 Element::Edge if info.is_node => Some("is a node, so it cannot also be an edge"),
+                Element::Node if holds_a_path(info) => {
+                    Some("is a path, so it cannot also be a node")
+                }
+                Element::Edge if holds_a_path(info) => {
+                    Some("is a path, so it cannot also be an edge")
+                }
+                Element::Path if info.is_node => Some("is a node, so it cannot also be a path"),
+                Element::Path if info.is_edge => Some("is an edge, so it cannot also be a path"),
                 Element::Node if holds_a_value(info) => {
                     Some("holds a value, so it cannot be a node")
                 }
                 Element::Edge if holds_a_value(info) => {
                     Some("holds a value, so it cannot be an edge")
+                }
+                Element::Path if holds_a_value(info) => {
+                    Some("holds a value, so it cannot be a path")
                 }
                 _ => None,
             };
@@ -1136,18 +1159,17 @@ impl Binder {
                 return Err(binding_error(format!("Variable '{name}' {conflict}")));
             }
         }
-        let is_edge = element == Element::Edge;
         self.context.add_variable(
             name.to_string(),
             VariableInfo {
                 name: name.to_string(),
-                data_type: if is_edge {
-                    LogicalType::Edge
-                } else {
-                    LogicalType::Node
+                data_type: match element {
+                    Element::Node => LogicalType::Node,
+                    Element::Edge => LogicalType::Edge,
+                    Element::Path => LogicalType::Path,
                 },
-                is_node: !is_edge,
-                is_edge,
+                is_node: element == Element::Node,
+                is_edge: element == Element::Edge,
             },
         );
         Ok(())
@@ -1209,9 +1231,18 @@ impl Binder {
             )));
         }
 
-        // Add edge variable if present
+        // Add edge variable if present. A variable-length relationship may
+        // be a list of relationships bound before (`WITH [r1, r2] AS rs MATCH
+        // (a)-[rs*]->(b)`, TCK Match4 [8]).
         if let Some(ref edge_var) = expand.edge_variable {
-            self.bind_element(edge_var, Element::Edge)?;
+            let a_bound_list = expand.max_hops != Some(1)
+                && self
+                    .context
+                    .get(edge_var)
+                    .is_some_and(|info| matches!(info.data_type, LogicalType::List(_)));
+            if !a_bound_list {
+                self.bind_element(edge_var, Element::Edge)?;
+            }
         }
 
         // Add target variable
@@ -1220,15 +1251,7 @@ impl Binder {
         // Add path variables for variable-length paths
         if let Some(ref path_alias) = expand.path_alias {
             // Register the path variable itself (e.g. p in MATCH p=...)
-            self.context.add_variable(
-                path_alias.clone(),
-                VariableInfo {
-                    name: path_alias.clone(),
-                    data_type: LogicalType::Any,
-                    is_node: false,
-                    is_edge: false,
-                },
-            );
+            self.bind_element(path_alias, Element::Path)?;
             // length(p) → _path_length_p
             let path_length_var = format!("_path_length_{}", path_alias);
             self.context.add_variable(
@@ -1274,6 +1297,27 @@ impl Binder {
 
         // Validate the predicate expression
         self.validate_expression(&filter.predicate)?;
+
+        // A node, an edge or a path is no truth value (`WHERE (n)`)
+        if let LogicalExpression::Variable(name) = &filter.predicate
+            && let Some(info) = self.context.get(name)
+        {
+            let kind = if info.is_node {
+                Some("a node")
+            } else if info.is_edge {
+                Some("an edge")
+            } else if holds_a_path(info) {
+                Some("a path")
+            } else {
+                None
+            };
+            if let Some(kind) = kind {
+                return Err(binding_error(format!(
+                    "Variable '{name}' is {kind}, which is not a condition: test a property \
+                     or a pattern of it"
+                )));
+            }
+        }
 
         Ok(())
     }
@@ -1423,13 +1467,19 @@ impl Binder {
                 }
                 Ok(())
             }
-            LogicalExpression::Property { variable, .. } => {
-                if !self.context.contains(variable) {
+            LogicalExpression::Property { variable, property } => {
+                let Some(info) = self.context.get(variable) else {
                     return Err(undefined_variable_error(
                         variable,
                         &self.context,
                         " in property access",
                     ));
+                };
+                if holds_a_path(info) {
+                    return Err(binding_error(format!(
+                        "Variable '{variable}' is a path, which has no property '{property}': \
+                         read it from nodes({variable}) or relationships({variable})"
+                    )));
                 }
                 Ok(())
             }
@@ -1612,8 +1662,8 @@ impl Binder {
                     Value::Int64(_) => LogicalType::Int64,
                     Value::Float64(_) => LogicalType::Float64,
                     Value::String(_) => LogicalType::String,
-                    Value::List(_) => LogicalType::Any, // Complex type
-                    Value::Map(_) => LogicalType::Any,  // Complex type
+                    Value::List(_) => LogicalType::List(Box::new(LogicalType::Any)),
+                    Value::Map(_) => any_map(),
                     Value::Null => LogicalType::Any,
                     _ => LogicalType::Any,
                 }
@@ -1625,12 +1675,13 @@ impl Binder {
                 | Callee::Builtin(BuiltinFunction::Id) => LogicalType::Int64,
                 Callee::Aggregate(AggregateFunction::Avg) => LogicalType::Float64,
                 Callee::Builtin(BuiltinFunction::Type) => LogicalType::String,
+                Callee::Builtin(BuiltinFunction::Path) => LogicalType::Path,
                 // List-returning functions (labels, collect) use Any: the
                 // element type is not tracked.
                 _ => LogicalType::Any,
             },
-            LogicalExpression::List(_) => LogicalType::Any, // Complex type
-            LogicalExpression::Map(_) => LogicalType::Any,  // Complex type
+            LogicalExpression::List(_) => LogicalType::List(Box::new(LogicalType::Any)),
+            LogicalExpression::Map(_) => any_map(),
             _ => LogicalType::Any,
         }
     }
@@ -4782,16 +4833,22 @@ mod tests {
         assert_eq!(ctx.get("i").unwrap().data_type, LogicalType::Int64);
         assert_eq!(ctx.get("f").unwrap().data_type, LogicalType::Float64);
         assert_eq!(ctx.get("s").unwrap().data_type, LogicalType::String);
-        assert_eq!(ctx.get("l").unwrap().data_type, LogicalType::Any);
-        assert_eq!(ctx.get("m").unwrap().data_type, LogicalType::Any);
+        assert_eq!(
+            ctx.get("l").unwrap().data_type,
+            LogicalType::List(Box::new(LogicalType::Any))
+        );
+        assert_eq!(ctx.get("m").unwrap().data_type, any_map());
         assert_eq!(ctx.get("n").unwrap().data_type, LogicalType::Any);
         assert_eq!(ctx.get("cnt").unwrap().data_type, LogicalType::Int64);
         assert_eq!(ctx.get("avg_val").unwrap().data_type, LogicalType::Float64);
         assert_eq!(ctx.get("tname").unwrap().data_type, LogicalType::String);
         assert_eq!(ctx.get("lbls").unwrap().data_type, LogicalType::Any);
         assert_eq!(ctx.get("u").unwrap().data_type, LogicalType::Any);
-        assert_eq!(ctx.get("lit_list").unwrap().data_type, LogicalType::Any);
-        assert_eq!(ctx.get("lit_map").unwrap().data_type, LogicalType::Any);
+        assert_eq!(
+            ctx.get("lit_list").unwrap().data_type,
+            LogicalType::List(Box::new(LogicalType::Any))
+        );
+        assert_eq!(ctx.get("lit_map").unwrap().data_type, any_map());
         assert_eq!(ctx.get("unary_ty").unwrap().data_type, LogicalType::Any);
         assert_eq!(ctx.get("bin_ty").unwrap().data_type, LogicalType::Any);
     }

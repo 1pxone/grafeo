@@ -208,6 +208,8 @@ pub struct NodePattern {
     pub labels: Vec<String>,
     /// Property map (literal properties for matching/creating).
     pub properties: Vec<(String, Expression)>,
+    /// Whether the pattern writes a property map, an empty `{}` included.
+    pub has_property_map: bool,
     /// Source span.
     pub span: Option<SourceSpan>,
 }
@@ -574,6 +576,11 @@ pub enum Expression {
     },
     /// EXISTS subquery.
     Exists(Box<Query>),
+    /// A pattern written as an expression, `(a)-[:T]->(b)`: true when it has
+    /// a match for the row, as `EXISTS { MATCH (a)-[:T]->(b) }` is. Unlike
+    /// the subquery it binds no new variable, and it is a condition, not a
+    /// value (openCypher 9, pattern predicates).
+    PatternPredicate(Box<Pattern>),
     /// COUNT subquery.
     CountSubquery(Box<Query>),
     /// Map projection: `node { .prop1, .prop2, key: expr, .* }`.

@@ -1107,7 +1107,8 @@ impl<'a> Parser<'a> {
             labels.push(self.expect_identifier()?);
         }
 
-        let properties = if self.current.kind == TokenKind::LBrace {
+        let has_property_map = self.current.kind == TokenKind::LBrace;
+        let properties = if has_property_map {
             self.parse_property_map()?
         } else {
             Vec::new()
@@ -1119,6 +1120,7 @@ impl<'a> Parser<'a> {
             variable,
             labels,
             properties,
+            has_property_map,
             span: None,
         })
     }
@@ -1789,7 +1791,8 @@ impl<'a> Parser<'a> {
 
     /// Parses `( ... )` at the start of an expression. A pattern with a
     /// relationship, `(d)-[:T]->()`, is a pattern predicate: true when it has
-    /// a match, like EXISTS { MATCH (d)-[:T]->() }. Anything else in
+    /// a match, like EXISTS { MATCH (d)-[:T]->() } (see
+    /// [`Expression::PatternPredicate`]). Anything else in
     /// parentheses, including a lone `(n)`, is an expression, which nests one
     /// level deeper.
     fn parse_parenthesized_expression(&mut self) -> Result<Expression> {
@@ -1802,13 +1805,7 @@ impl<'a> Parser<'a> {
         self.definite_error = false;
         match self.parse_pattern() {
             Ok(pattern @ Pattern::Path(_)) => {
-                return Ok(Expression::Exists(Box::new(Query {
-                    clauses: vec![Clause::Match(MatchClause {
-                        patterns: vec![pattern],
-                        span: None,
-                    })],
-                    span: None,
-                })));
+                return Ok(Expression::PatternPredicate(Box::new(pattern)));
             }
             Err(error) if self.definite_error => return Err(error),
             _ => {}

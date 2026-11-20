@@ -2,6 +2,16 @@
 
 All notable changes to Grafeo, for future reference (and enjoyment).
 
+## [0.6.5] - Unreleased
+
+### Fixed
+
+- **A path variable keeps its kind** ([#795](https://github.com/GrafeoDB/grafeo/issues/795)): a name bound to a path is refused as a node or an edge, and a node, an edge or a value as a path (`MATCH p = (p)-->()`, `WITH 1 AS p MATCH p = ()-->()`); they ran and matched nothing. A path's property (`p.name`) is refused, in GQL as well.
+- **A list or a map is no node or edge** ([#795](https://github.com/GrafeoDB/grafeo/issues/795)): `WITH [1] AS n MATCH (n)` and `WITH {x: 1} AS r MATCH ()-[r]-()` are refused, as a number or a string already was; a list of relationships still binds a variable-length relationship (`[rs*]`).
+- **A node, an edge or a path is no condition** ([#795](https://github.com/GrafeoDB/grafeo/issues/795)): `WHERE n` (or `WHERE (n)`) is refused, where it was accepted.
+- **Cypher's CREATE and MERGE do not make a bound node again** ([#795](https://github.com/GrafeoDB/grafeo/issues/795)): `MATCH (a) CREATE (a)`, `MATCH (a) MERGE (a)`, and a bound node given labels or properties in a CREATE or a MERGE (`CREATE (n:Foo) CREATE (n:Bar)-[:R]->()`) are refused, as openCypher does; a bound node still ends a new relationship. CREATE refuses a variable-length relationship.
+- **A Cypher pattern used as a condition binds nothing and is no value** ([#795](https://github.com/GrafeoDB/grafeo/issues/795)): `WHERE (n)-[r]->(m)` with `r` or `m` new is refused (write `EXISTS { MATCH ... }` to bind them), and so is a pattern returned, passed on by a WITH, set or given to `size()`; as a condition in `exists()`, `NOT`, `CASE WHEN` and the like it is unchanged.
+
 ## [0.6.4] - Unreleased
 
 Performance and memory release, in progress: this section lists what has landed so far.

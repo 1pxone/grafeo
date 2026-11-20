@@ -274,9 +274,6 @@ tests:
   # [15] Fail when merge a node that is already bound
   # TCK: SyntaxError at compile time: VariableAlreadyBound
   - name: s15_fail_when_merge_a_node_that_is_already_bound
-    xfail:
-      spec: "openCypher TCK 2024.3 Merge1: [15] Fail when merge a node that is already bound"
-      issue: fix in 0.6.5
     query: |
       MATCH (a)
       MERGE (a)

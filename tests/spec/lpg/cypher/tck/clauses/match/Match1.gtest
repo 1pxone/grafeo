@@ -256,9 +256,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #1
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #1"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]-()
       MATCH (r)
@@ -270,9 +267,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #2
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_2
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #2"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]->()
       MATCH (r)
@@ -284,9 +278,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #3
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_3
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #3"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()<-[]-()
       MATCH (r)
@@ -298,9 +289,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #4
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_4
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #4"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[*]-()
       MATCH (r)
@@ -312,9 +300,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #5
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #5"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[*]->()
       MATCH (r)
@@ -326,9 +311,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #6
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #6"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[]-()
       MATCH (r)
@@ -340,9 +322,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #7
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #7"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[]->()
       MATCH (r)
@@ -354,9 +333,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #8
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #8"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()<-[]-()
       MATCH (r)
@@ -368,9 +344,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #9
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_9
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #9"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[*]-()
       MATCH (r)
@@ -382,9 +355,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #10
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_10
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #10"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[*]->()
       MATCH (r)
@@ -396,9 +366,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #11
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_11
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #11"
-      issue: fix in 0.6.5
     query: |
       MATCH ()-[]-(), r = ()-[]-(), ()
       MATCH (r)
@@ -410,9 +377,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #12
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_12
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #12"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]-(), ()-[]-(), ()
       MATCH (r)
@@ -424,9 +388,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #13
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_13
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #13"
-      issue: fix in 0.6.5
     query: |
       MATCH ()-[]-()<-[]-(), r = ()-[]-()
       MATCH (r)
@@ -438,9 +399,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #14
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_14
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #14"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b)
       MATCH (r)
@@ -452,9 +410,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #15
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_15
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #15"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b)
       MATCH (r)
@@ -466,9 +421,6 @@ tests:
   # [8] Fail when a path has the same variable in a preceding MATCH #16
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s8_fail_when_a_path_has_the_same_variable_in_a_preceding_match_16
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [8] Fail when a path has the same variable in a preceding MATCH #16"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b)
       MATCH (r)
@@ -730,9 +682,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #1
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #1"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]-(), (r)
       RETURN r
@@ -743,9 +692,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #2
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_2
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #2"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]->(), (r)
       RETURN r
@@ -756,9 +702,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #3
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_3
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #3"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()<-[]-(), (r)
       RETURN r
@@ -769,9 +712,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #4
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_4
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #4"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[*]-(), (r)
       RETURN r
@@ -782,9 +722,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #5
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #5"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[*]->(), (r)
       RETURN r
@@ -795,9 +732,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #6
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #6"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[]-(), (r)
       RETURN r
@@ -808,9 +742,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #7
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #7"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[]->(), (r)
       RETURN r
@@ -821,9 +752,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #8
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #8"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()<-[]-(), (r)
       RETURN r
@@ -834,9 +762,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #9
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_9
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #9"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[*]-(), (r)
       RETURN r
@@ -847,9 +772,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #10
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_10
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #10"
-      issue: fix in 0.6.5
     query: |
       MATCH (), r = ()-[*]->(), (r)
       RETURN r
@@ -860,9 +782,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #11
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_11
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #11"
-      issue: fix in 0.6.5
     query: |
       MATCH ()-[]-(), r = ()-[]-(), (), (r)
       RETURN r
@@ -873,9 +792,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #12
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_12
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #12"
-      issue: fix in 0.6.5
     query: |
       MATCH r = ()-[]-(), ()-[]-(), (), (r)
       RETURN r
@@ -886,9 +802,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #13
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_13
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #13"
-      issue: fix in 0.6.5
     query: |
       MATCH ()-[]-()<-[]-(), r = ()-[]-(), (r)
       RETURN r
@@ -899,9 +812,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #14
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_14
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #14"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b), (r)
       RETURN r
@@ -912,9 +822,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #15
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_15
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #15"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b), (r)
       RETURN r
@@ -925,9 +832,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #16
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_16
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #16"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b), (r)
       RETURN r
@@ -938,9 +842,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #17
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_17
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #17"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (s)-[p]-(t)-[]-(b), (r), (a)-[q]-(b)
       RETURN r
@@ -951,9 +852,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #18
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_18
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #18"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r), (a)-[q]-(b)
       RETURN r
@@ -964,9 +862,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #19
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_19
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #19"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (s)-[p]-(t)-[]-(b), (a)-[q]-(r)
       RETURN r
@@ -977,9 +872,6 @@ tests:
   # [10] Fail when a path has the same variable in the same pattern #20
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s10_fail_when_a_path_has_the_same_variable_in_the_same_pattern_20
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [10] Fail when a path has the same variable in the same pattern #20"
-      issue: fix in 0.6.5
     query: |
       MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r)-[q]-(b)
       RETURN r
@@ -1034,9 +926,6 @@ tests:
   # [11] Fail when matching a node variable bound to a value #5
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s11_fail_when_matching_a_node_variable_bound_to_a_value_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [11] Fail when matching a node variable bound to a value #5"
-      issue: fix in 0.6.5
     query: |
       WITH [] AS n
       MATCH (n)
@@ -1048,9 +937,6 @@ tests:
   # [11] Fail when matching a node variable bound to a value #6
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s11_fail_when_matching_a_node_variable_bound_to_a_value_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [11] Fail when matching a node variable bound to a value #6"
-      issue: fix in 0.6.5
     query: |
       WITH [10] AS n
       MATCH (n)
@@ -1062,9 +948,6 @@ tests:
   # [11] Fail when matching a node variable bound to a value #7
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s11_fail_when_matching_a_node_variable_bound_to_a_value_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [11] Fail when matching a node variable bound to a value #7"
-      issue: fix in 0.6.5
     query: |
       WITH {x: 1} AS n
       MATCH (n)
@@ -1076,9 +959,6 @@ tests:
   # [11] Fail when matching a node variable bound to a value #8
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s11_fail_when_matching_a_node_variable_bound_to_a_value_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Match1: [11] Fail when matching a node variable bound to a value #8"
-      issue: fix in 0.6.5
     query: |
       WITH {x: []} AS n
       MATCH (n)

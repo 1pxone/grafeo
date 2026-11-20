@@ -25,7 +25,7 @@ use crate::query::plan::{
 use grafeo_adapters::query::cypher::{self, ast};
 use grafeo_common::types::Value;
 use grafeo_common::utils::error::{Error, QueryError, QueryErrorKind, Result};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 
 /// Whether aggregate substitution is reading a scalar wrapper or an argument.
@@ -107,6 +107,10 @@ struct CypherTranslator {
     /// The variables the `CALL` body being translated imports, which a
     /// `WITH` in it passes on whether it names them or not.
     call_imports: CallImports,
+    /// How many EXISTS, COUNT or CALL bodies the clause being translated is
+    /// in: a WHERE there also reads the outer row, which its plan does not
+    /// show, so its pattern predicates are not checked for new variables.
+    subqueries: Cell<u32>,
 }
 
 /// What a WITH or RETURN projects, for the ORDER BY that follows it
@@ -149,6 +153,7 @@ impl CypherTranslator {
             sort_scope: RefCell::new(None),
             with_columns: RefCell::new(None),
             call_imports: CallImports::default(),
+            subqueries: Cell::new(0),
         }
     }
 
@@ -294,6 +299,7 @@ impl CypherTranslator {
             },
             (_, None) => None,
         };
+        check_patterns_in_values(clause)?;
         let plan = match clause {
             ast::Clause::Match(match_clause) => self.translate_match(match_clause, input),
             ast::Clause::OptionalMatch(match_clause) => {
@@ -321,7 +327,18 @@ impl CypherTranslator {
                 scope,
                 unions,
                 union_all,
-            } => self.translate_call_subquery(query, unions, *union_all, scope.as_deref(), input),
+            } => {
+                self.subqueries.set(self.subqueries.get() + 1);
+                let plan = self.translate_call_subquery(
+                    query,
+                    unions,
+                    *union_all,
+                    scope.as_deref(),
+                    input,
+                );
+                self.subqueries.set(self.subqueries.get() - 1);
+                plan
+            }
             ast::Clause::ForEach(foreach) => self.translate_foreach(foreach, input),
             ast::Clause::LoadCsv(load_csv) => self.translate_load_csv(load_csv),
         };
@@ -1392,6 +1409,11 @@ impl CypherTranslator {
                 "WHERE requires input",
             ))
         })?;
+        if self.subqueries.get() == 0
+            && let Some(scope) = input.bound_variables(self.call_scope.borrow().as_ref())
+        {
+            check_pattern_predicate_names(&where_clause.predicate, &scope)?;
+        }
         let predicate = self.translate_predicate(&where_clause.predicate)?;
 
         // When the input is a LeftJoin (from OPTIONAL MATCH), classify the
@@ -1708,6 +1730,11 @@ impl CypherTranslator {
         input: Option<LogicalOperator>,
     ) -> Result<LogicalOperator> {
         let pattern = &merge_clause.pattern;
+        let bound = match &input {
+            Some(input) => input.bound_variables(self.call_scope.borrow().as_ref()),
+            None => Some(HashSet::new()),
+        };
+        check_created_names("MERGE", std::slice::from_ref(pattern), bound)?;
 
         // Check if this is a relationship (path) pattern
         let path = match pattern {
@@ -2568,6 +2595,7 @@ impl CypherTranslator {
                 }
             }
             ast::Expression::Exists(_)
+            | ast::Expression::PatternPredicate(_)
             | ast::Expression::CountSubquery(_)
             | ast::Expression::PatternComprehension { .. } => {
                 if matches!(
@@ -3041,6 +3069,11 @@ impl CypherTranslator {
         create_clause: &ast::CreateClause,
         input: Option<LogicalOperator>,
     ) -> Result<LogicalOperator> {
+        let bound = match &input {
+            Some(input) => input.bound_variables(self.call_scope.borrow().as_ref()),
+            None => Some(HashSet::new()),
+        };
+        check_created_names("CREATE", &create_clause.patterns, bound)?;
         let elements = self.create_elements(&create_clause.patterns)?;
         if elements.is_empty() {
             return input.ok_or_else(|| {
@@ -3394,7 +3427,10 @@ impl CypherTranslator {
                 // for the row. As a call it would test the predicate's value
                 // for null, which is never null.
                 if name.eq_ignore_ascii_case("exists")
-                    && let [pattern @ ast::Expression::Exists(_)] = args.as_slice()
+                    && let [
+                        pattern @ (ast::Expression::Exists(_)
+                        | ast::Expression::PatternPredicate(_)),
+                    ] = args.as_slice()
                 {
                     return self.translate_expression(pattern);
                 }
@@ -3563,6 +3599,16 @@ impl CypherTranslator {
                 let inner_plan = self.translate_exists_subquery(inner_query)?;
                 Ok(LogicalExpression::ExistsSubquery(Box::new(inner_plan)))
             }
+            ast::Expression::PatternPredicate(pattern) => {
+                let inner_plan = self.translate_exists_subquery(&ast::Query {
+                    clauses: vec![ast::Clause::Match(ast::MatchClause {
+                        patterns: vec![pattern.as_ref().clone()],
+                        span: None,
+                    })],
+                    span: None,
+                })?;
+                Ok(LogicalExpression::ExistsSubquery(Box::new(inner_plan)))
+            }
             ast::Expression::CountSubquery(inner_query) => {
                 let inner_plan = self.translate_exists_subquery(inner_query)?;
                 Ok(LogicalExpression::CountSubquery(Box::new(inner_plan)))
@@ -3573,6 +3619,13 @@ impl CypherTranslator {
     /// Translates the inner query of an EXISTS or COUNT subquery to a
     /// `LogicalOperator`.
     fn translate_exists_subquery(&self, query: &ast::Query) -> Result<LogicalOperator> {
+        self.subqueries.set(self.subqueries.get() + 1);
+        let plan = self.translate_exists_subquery_body(query);
+        self.subqueries.set(self.subqueries.get() - 1);
+        plan
+    }
+
+    fn translate_exists_subquery_body(&self, query: &ast::Query) -> Result<LogicalOperator> {
         let mut plan: Option<LogicalOperator> = None;
 
         for clause in &query.clauses {
@@ -4105,6 +4158,326 @@ fn returns_rows(body: &ast::Query) -> bool {
         .any(|clause| matches!(clause, ast::Clause::Return(_)))
 }
 
+/// The node patterns of `pattern`, in order.
+fn node_patterns(pattern: &ast::Pattern) -> Vec<&ast::NodePattern> {
+    match pattern {
+        ast::Pattern::Node(node) => vec![node],
+        ast::Pattern::Path(path) => std::iter::once(&path.start)
+            .chain(path.chain.iter().map(|rel| &rel.target))
+            .collect(),
+        ast::Pattern::NamedPath { pattern, .. } => node_patterns(pattern),
+    }
+}
+
+/// The variables `pattern` names, in order: its path's, then each node's and
+/// relationship's.
+fn named_in_pattern(pattern: &ast::Pattern) -> Vec<&str> {
+    let mut names = Vec::new();
+    let mut path = pattern;
+    if let ast::Pattern::NamedPath { name, pattern, .. } = pattern {
+        names.push(name.as_str());
+        path = pattern;
+    }
+    match path {
+        ast::Pattern::Node(node) => names.extend(node.variable.as_deref()),
+        ast::Pattern::Path(path) => {
+            names.extend(path.start.variable.as_deref());
+            for rel in &path.chain {
+                names.extend(rel.variable.as_deref());
+                names.extend(rel.target.variable.as_deref());
+            }
+        }
+        ast::Pattern::NamedPath { .. } => {}
+    }
+    names
+}
+
+/// An error that names a variable already bound (openCypher's
+/// VariableAlreadyBound).
+fn already_bound(message: String) -> Error {
+    Error::from(QueryError::new(QueryErrorKind::Semantic, message))
+}
+
+/// Checks the patterns of a CREATE or a MERGE (`clause`) against the
+/// variables bound before it (`bound`, `None` when they are not known here)
+/// and in it: a bound node is only an end of a relationship, without labels
+/// or properties (an empty `{}` included), never a pattern of its own
+/// (`MATCH (a) CREATE (a)`), and a relationship is new, and of one hop in a
+/// CREATE (openCypher's VariableAlreadyBound and CreatingVarLength).
+fn check_created_names(
+    clause: &str,
+    patterns: &[ast::Pattern],
+    bound: Option<HashSet<String>>,
+) -> Result<()> {
+    // MERGE refuses a variable-length relationship where it plans it.
+    for rel in patterns.iter().flat_map(relationship_patterns) {
+        if rel.length.is_some() && clause == "CREATE" {
+            return Err(Error::from(QueryError::new(
+                QueryErrorKind::Semantic,
+                format!("{clause} cannot make a variable-length relationship: give it one hop"),
+            )));
+        }
+    }
+    let Some(mut bound) = bound else {
+        return Ok(());
+    };
+    for pattern in patterns {
+        let lone = match pattern {
+            ast::Pattern::Node(node) => Some(node),
+            ast::Pattern::NamedPath { pattern, .. } => match pattern.as_ref() {
+                ast::Pattern::Node(node) => Some(node),
+                _ => None,
+            },
+            ast::Pattern::Path(_) => None,
+        };
+        if let Some(name) = lone.and_then(|node| node.variable.as_ref())
+            && bound.contains(name)
+        {
+            return Err(already_bound(format!(
+                "Variable '{name}' is already bound, so {clause} ({name}) would make nothing: \
+                 {clause} a pattern that ends at it, or a node of another name"
+            )));
+        }
+        for node in node_patterns(pattern) {
+            let Some(name) = &node.variable else {
+                continue;
+            };
+            if bound.contains(name) && (!node.labels.is_empty() || node.has_property_map) {
+                return Err(already_bound(format!(
+                    "Variable '{name}' is already bound, so {clause} cannot give it labels or \
+                     properties: set them with SET {name}:Label or SET {name}.key = value"
+                )));
+            }
+        }
+        for rel in relationship_patterns(pattern) {
+            if let Some(name) = &rel.variable
+                && bound.contains(name)
+            {
+                return Err(already_bound(format!(
+                    "Variable '{name}' is already bound, so {clause} cannot make a relationship \
+                     of that name"
+                )));
+            }
+        }
+        bound.extend(named_in_pattern(pattern).into_iter().map(str::to_string));
+    }
+    Ok(())
+}
+
+/// Checks that each pattern predicate of a WHERE (`predicate`) names only
+/// variables bound before it (`scope`) or by an expression around it (a list
+/// predicate's, a comprehension's or a `reduce`'s): a pattern used as a
+/// condition tests the row and binds nothing (openCypher's UndefinedVariable,
+/// TCK Pattern1 [10]); EXISTS { MATCH ... } may bind new ones.
+fn check_pattern_predicate_names(
+    predicate: &ast::Expression,
+    scope: &HashSet<String>,
+) -> Result<()> {
+    visit_pattern_predicates(
+        predicate,
+        true,
+        &mut Vec::new(),
+        &mut |pattern, locals, _| {
+            for name in named_in_pattern(pattern) {
+                if !scope.contains(name) && !locals.contains(&name) {
+                    return Err(Error::from(QueryError::invalid_reference(format!(
+                        "Variable '{name}' is not bound: a pattern used as a condition only tests \
+                     the variables bound before it; write EXISTS {{ MATCH ... }} to bind new ones"
+                    ))));
+                }
+            }
+            Ok(())
+        },
+    )
+}
+
+/// Checks that the values a clause computes (the items of a RETURN or a WITH,
+/// the values of a SET) hold no pattern but as a condition: a pattern is a
+/// condition, not a value (openCypher's UnexpectedSyntax, TCK Pattern1 [22] to
+/// [24], List6 [6]).
+fn check_patterns_in_values(clause: &ast::Clause) -> Result<()> {
+    let items = match clause {
+        ast::Clause::Return(ret) => match &ret.items {
+            ast::ReturnItems::All => Vec::new(),
+            ast::ReturnItems::AllAnd(items) | ast::ReturnItems::Explicit(items) => {
+                items.iter().map(|item| &item.expression).collect()
+            }
+        },
+        ast::Clause::With(with) => with.items.iter().map(|item| &item.expression).collect(),
+        ast::Clause::Set(set) => set
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                ast::SetItem::Property { value, .. } => Some(value),
+                ast::SetItem::AllProperties { properties, .. }
+                | ast::SetItem::MergeProperties { properties, .. } => Some(properties),
+                ast::SetItem::Labels { .. } => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    };
+    for value in items {
+        visit_pattern_predicates(value, false, &mut Vec::new(), &mut |_, _, condition| {
+            if condition {
+                Ok(())
+            } else {
+                Err(Error::from(QueryError::new(
+                    QueryErrorKind::Semantic,
+                    "A pattern is a condition, not a value: test it in a WHERE, with \
+                     exists(...), or count its matches with COUNT { MATCH ... }",
+                )))
+            }
+        })?;
+    }
+    Ok(())
+}
+
+/// Calls `found` for each pattern predicate in `expression`, with the
+/// variables the expressions around it bind and whether it stands as a
+/// condition (`condition` says whether `expression` does): in a WHERE, under
+/// NOT, AND, OR and XOR, as the argument of `exists()`, as a searched CASE's
+/// test, or as the filter of a comprehension or a list predicate. It does not
+/// go into an EXISTS or COUNT subquery, which has its own WHERE.
+fn visit_pattern_predicates<'e>(
+    expression: &'e ast::Expression,
+    condition: bool,
+    locals: &mut Vec<&'e str>,
+    found: &mut impl FnMut(&'e ast::Pattern, &[&'e str], bool) -> Result<()>,
+) -> Result<()> {
+    match expression {
+        ast::Expression::PatternPredicate(pattern) => found(pattern, locals, condition),
+        ast::Expression::Literal(_)
+        | ast::Expression::Variable(_)
+        | ast::Expression::Parameter(_)
+        | ast::Expression::Exists(_)
+        | ast::Expression::CountSubquery(_) => Ok(()),
+        ast::Expression::PropertyAccess { base, .. } => {
+            visit_pattern_predicates(base, false, locals, found)
+        }
+        ast::Expression::IndexAccess { base, index } => {
+            visit_pattern_predicates(base, false, locals, found)?;
+            visit_pattern_predicates(index, false, locals, found)
+        }
+        ast::Expression::SliceAccess { base, start, end } => {
+            visit_pattern_predicates(base, false, locals, found)?;
+            for bound in [start, end].into_iter().flatten() {
+                visit_pattern_predicates(bound, false, locals, found)?;
+            }
+            Ok(())
+        }
+        ast::Expression::Binary { left, op, right } => {
+            let logical = matches!(
+                op,
+                ast::BinaryOp::And | ast::BinaryOp::Or | ast::BinaryOp::Xor
+            );
+            visit_pattern_predicates(left, logical, locals, found)?;
+            visit_pattern_predicates(right, logical, locals, found)
+        }
+        ast::Expression::Unary { op, operand } => {
+            visit_pattern_predicates(operand, *op == ast::UnaryOp::Not, locals, found)
+        }
+        ast::Expression::FunctionCall { name, args, .. } => {
+            let exists = name.eq_ignore_ascii_case("exists") && args.len() == 1;
+            for arg in args {
+                visit_pattern_predicates(arg, exists, locals, found)?;
+            }
+            Ok(())
+        }
+        ast::Expression::List(items) => items
+            .iter()
+            .try_for_each(|item| visit_pattern_predicates(item, false, locals, found)),
+        ast::Expression::Map(entries) => entries
+            .iter()
+            .try_for_each(|(_, value)| visit_pattern_predicates(value, false, locals, found)),
+        ast::Expression::ListComprehension {
+            variable,
+            list,
+            filter,
+            projection,
+        } => {
+            visit_pattern_predicates(list, false, locals, found)?;
+            locals.push(variable);
+            let inner = filter
+                .iter()
+                .try_for_each(|filter| visit_pattern_predicates(filter, true, locals, found))
+                .and_then(|()| {
+                    projection.iter().try_for_each(|projection| {
+                        visit_pattern_predicates(projection, false, locals, found)
+                    })
+                });
+            locals.pop();
+            inner
+        }
+        ast::Expression::PatternComprehension {
+            pattern,
+            where_clause,
+            projection,
+        } => {
+            let names = named_in_pattern(pattern);
+            let count = names.len();
+            locals.extend(names);
+            let inner = where_clause
+                .iter()
+                .try_for_each(|filter| visit_pattern_predicates(filter, true, locals, found))
+                .and_then(|()| visit_pattern_predicates(projection, false, locals, found));
+            locals.truncate(locals.len() - count);
+            inner
+        }
+        ast::Expression::Case {
+            input,
+            whens,
+            else_clause,
+        } => {
+            if let Some(input) = input {
+                visit_pattern_predicates(input, false, locals, found)?;
+            }
+            for (when, then) in whens {
+                visit_pattern_predicates(when, input.is_none(), locals, found)?;
+                visit_pattern_predicates(then, false, locals, found)?;
+            }
+            else_clause
+                .iter()
+                .try_for_each(|other| visit_pattern_predicates(other, false, locals, found))
+        }
+        ast::Expression::ListPredicate {
+            variable,
+            list,
+            predicate,
+            ..
+        } => {
+            visit_pattern_predicates(list, false, locals, found)?;
+            locals.push(variable);
+            let inner = visit_pattern_predicates(predicate, true, locals, found);
+            locals.pop();
+            inner
+        }
+        ast::Expression::MapProjection { entries, .. } => {
+            entries.iter().try_for_each(|entry| match entry {
+                ast::MapProjectionEntry::LiteralEntry(_, value) => {
+                    visit_pattern_predicates(value, false, locals, found)
+                }
+                ast::MapProjectionEntry::PropertySelector(_)
+                | ast::MapProjectionEntry::AllProperties => Ok(()),
+            })
+        }
+        ast::Expression::Reduce {
+            accumulator,
+            initial,
+            variable,
+            list,
+            expression,
+        } => {
+            visit_pattern_predicates(initial, false, locals, found)?;
+            visit_pattern_predicates(list, false, locals, found)?;
+            locals.push(accumulator);
+            locals.push(variable);
+            let inner = visit_pattern_predicates(expression, false, locals, found);
+            locals.truncate(locals.len() - 2);
+            inner
+        }
+    }
+}
+
 /// The relationship patterns of `pattern`, in order.
 fn relationship_patterns(pattern: &ast::Pattern) -> Vec<&ast::RelationshipPattern> {
     match pattern {
@@ -4257,6 +4630,7 @@ fn contains_aggregate(expr: &ast::Expression) -> bool {
         | ast::Expression::Variable(_)
         | ast::Expression::Parameter(_)
         | ast::Expression::Exists(_)
+        | ast::Expression::PatternPredicate(_)
         | ast::Expression::CountSubquery(_)
         | ast::Expression::PatternComprehension { .. } => false,
     }

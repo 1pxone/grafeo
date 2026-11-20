@@ -197,9 +197,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #2
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_2
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #2"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r]->(a) RETURN n
     expect:
@@ -209,9 +206,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #3
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_3
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #3"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (a)-[r]->(n) RETURN n
     expect:
@@ -221,9 +215,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #4
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_4
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #4"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)<-[r {}]-(a) RETURN n
     expect:
@@ -233,9 +224,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #5
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #5"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r {}]-(a) RETURN n
     expect:
@@ -245,9 +233,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #6
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #6"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r]->() RETURN n
     expect:
@@ -257,9 +242,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #7
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #7"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE ()-[r]->(n) RETURN n
     expect:
@@ -269,9 +251,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #8
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #8"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)<-[r]-() RETURN n
     expect:
@@ -281,9 +260,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #9
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_9
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #9"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r]-() RETURN n
     expect:
@@ -293,9 +269,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #10
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_10
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #10"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE ()-[r]->() RETURN n
     expect:
@@ -305,9 +278,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #11
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_11
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #11"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE ()<-[r]-() RETURN n
     expect:
@@ -317,9 +287,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #12
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_12
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #12"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE ()-[r]-() RETURN n
     expect:
@@ -329,9 +296,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #13
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_13
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #13"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r:REL]->(a {num: 5}) RETURN n
     expect:
@@ -341,9 +305,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #14
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_14
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #14"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r:REL*0..2]->(a {num: 5}) RETURN n
     expect:
@@ -353,9 +314,6 @@ tests:
   # [10] Fail on introducing unbounded variables in pattern #15
   # TCK: SyntaxError at compile time: UndefinedVariable
   - name: s10_fail_on_introducing_unbounded_variables_in_pattern_15
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [10] Fail on introducing unbounded variables in pattern #15"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n)-[r:REL]->(:C)<-[s:REL]-(a {num: 5}) RETURN n
     expect:
@@ -365,9 +323,6 @@ tests:
   # [11] Fail on checking self pattern
   # TCK: SyntaxError at compile time: InvalidArgumentType
   - name: s11_fail_on_checking_self_pattern
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [11] Fail on checking self pattern"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WHERE (n) RETURN n
     expect:
@@ -529,9 +484,6 @@ tests:
   # [22] Fail on using pattern in RETURN projection
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s22_fail_on_using_pattern_in_return_projection
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [22] Fail on using pattern in RETURN projection"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) RETURN (n)-[]->()
     expect:
@@ -541,9 +493,6 @@ tests:
   # [23] Fail on using pattern in WITH projection
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s23_fail_on_using_pattern_in_with_projection
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [23] Fail on using pattern in WITH projection"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) WITH (n)-[]->() AS x RETURN x
     expect:
@@ -553,9 +502,6 @@ tests:
   # [24] Fail on using pattern in right-hand side of SET
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s24_fail_on_using_pattern_in_right_hand_side_of_set
-    xfail:
-      spec: "openCypher TCK 2024.3 Pattern1: [24] Fail on using pattern in right-hand side of SET"
-      issue: fix in 0.6.5
     query: |
       MATCH (n) SET n.prop = head(nodes(head((n)-[:REL]->()))).foo
     expect:

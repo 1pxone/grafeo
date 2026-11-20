@@ -107,9 +107,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #1
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_1
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #1"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size(()--())
@@ -120,9 +117,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #2
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_2
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #2"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size(()--(a))
@@ -133,9 +127,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #3
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_3
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #3"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size((a)-->())
@@ -146,9 +137,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #4
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_4
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #4"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size((a)<--(a {}))
@@ -159,9 +147,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #5
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_5
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #5"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size((a)-[:REL]->(b))
@@ -172,9 +157,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #6
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_6
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #6"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size((a)-[:REL]->(b))
@@ -185,9 +167,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #7
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_7
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #7"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size((a)-[:REL]->(:C)<-[:REL]-(a {num: 5}))
@@ -198,9 +177,6 @@ tests:
   # [6] Fail for `size()` on pattern predicates #8
   # TCK: SyntaxError at compile time: UnexpectedSyntax
   - name: s6_fail_for_size_on_pattern_predicates_8
-    xfail:
-      spec: "openCypher TCK 2024.3 List6: [6] Fail for `size()` on pattern predicates #8"
-      issue: fix in 0.6.5
     query: |
       MATCH (a), (b), (c)
       RETURN size(()-[:REL*0..2]->()<-[:REL]-(:A {num: 5}))

@@ -525,9 +525,6 @@ tests:
   # [30] Fail when using a list or nodes as a node
   # TCK: SyntaxError at compile time: VariableTypeConflict
   - name: s30_fail_when_using_a_list_or_nodes_as_a_node
-    xfail:
-      spec: "openCypher TCK 2024.3 Match3: [30] Fail when using a list or nodes as a node"
-      issue: fix in 0.6.5
     query: |
       MATCH (n)
       WITH [n] AS users

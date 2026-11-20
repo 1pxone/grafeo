@@ -1,0 +1,114 @@
+# A variable bound once keeps its kind (#795): a path variable is not a node,
+# an edge or a value, a list or a map is no node or edge, a CREATE or MERGE
+# does not make a bound node again or give it labels or properties, and a
+# pattern used as a condition binds nothing and is no value. The openCypher
+# TCK (Match1, Match2, Match6, Create1, Create2, Merge1, Merge5, MatchWhere1,
+# Pattern1, List6) checks the refusals; these cases check that the forms
+# around them still run.
+meta:
+  language: cypher
+  model: lpg
+  section: regression
+  title: Rebound variables
+  dataset: empty
+
+tests:
+
+  - name: a_bound_node_ends_a_created_relationship
+    setup:
+      - "CREATE (:P {name: 'Alix'})"
+    query: "MATCH (a:P) CREATE (a)-[:KNOWS]->(b:P {name: 'Gus'}) RETURN b.name AS b"
+    expect:
+      rows:
+        - [Gus]
+
+  - name: a_bound_node_ends_a_merged_relationship
+    setup:
+      - "CREATE (:P {name: 'Alix'})"
+    query: "MATCH (a:P) MERGE (a)-[:KNOWS]->(b:Q) RETURN count(b) AS b"
+    expect:
+      rows:
+        - [1]
+
+  - name: a_node_named_earlier_in_a_create_ends_a_later_pattern
+    query: "CREATE (a:P {name: 'Alix'}), (a)-[:KNOWS]->(b:P {name: 'Gus'}) RETURN a.name AS a, b.name AS b"
+    expect:
+      rows:
+        - [Alix, Gus]
+
+  - name: a_bound_node_with_a_property_map_is_refused_in_create
+    setup:
+      - "CREATE (:P {name: 'Alix'})"
+    query: "MATCH (a:P) CREATE (a {age: 30})-[:KNOWS]->(:P)"
+    expect:
+      error: "Variable 'a' is already bound"
+
+  - name: a_path_passes_through_with
+    setup:
+      - "CREATE (:P {name: 'Alix'})-[:KNOWS]->(:P {name: 'Gus'})"
+    query: "MATCH p = (:P)-->(:P) WITH p RETURN length(p) AS hops, [x IN nodes(p) | x.name] AS names"
+    expect:
+      rows:
+        - [1, "[Alix, Gus]"]
+
+  - name: a_path_variable_is_no_node
+    setup:
+      - "CREATE (:P)-[:KNOWS]->(:P)"
+    query: "MATCH p = ()-->() MATCH (p) RETURN p"
+    expect:
+      error: "Variable 'p' is a path, so it cannot also be a node"
+
+  - name: a_path_has_no_property
+    setup:
+      - "CREATE (:P)-[:KNOWS]->(:P)"
+    query: "MATCH p = ()-->() RETURN p.name AS name"
+    expect:
+      error: "Variable 'p' is a path, which has no property 'name'"
+
+  - name: exists_may_bind_new_variables
+    setup:
+      - "CREATE (:P {name: 'Alix'})-[:KNOWS]->(:P {name: 'Gus'})"
+    query: "MATCH (n:P) WHERE EXISTS { MATCH (n)-[r]->(m) } RETURN n.name AS n"
+    expect:
+      rows:
+        - [Alix]
+
+  - name: a_pattern_predicate_reads_a_list_predicate_variable
+    setup:
+      - "CREATE (:P {name: 'Alix'})-[:KNOWS]->(:P {name: 'Gus'})-[:KNOWS]->(:P {name: 'Vincent'})"
+    query: "MATCH p = (a:P)-->()-->(c:P) WHERE all(x IN nodes(p)[0..2] WHERE (x)-->()) RETURN a.name AS a"
+    expect:
+      rows:
+        - [Alix]
+
+  - name: a_pattern_predicate_is_a_condition_in_a_projection
+    setup:
+      - "CREATE (:P {name: 'Alix'})-[:KNOWS]->(:P {name: 'Gus'})"
+    query: "MATCH (n:P) RETURN n.name AS n, exists((n)-->()) AS out, NOT (n)<--() AS first, CASE WHEN (n)-->() THEN 1 ELSE 0 END AS k ORDER BY n"
+    expect:
+      ordered: true
+      rows:
+        - [Alix, true, true, 1]
+        - [Gus, false, false, 0]
+
+  - name: a_pattern_comprehension_binds_its_own_variables
+    setup:
+      - "CREATE (:P {name: 'Alix'})-[:KNOWS]->(:P {name: 'Gus'})"
+    query: "MATCH (n:P {name: 'Alix'}) RETURN [(n)-[r]->(m) | m.name] AS names"
+    expect:
+      rows:
+        - ["[Gus]"]
+
+  - name: a_pattern_is_no_value
+    setup:
+      - "CREATE (:P)"
+    query: "MATCH (n:P) RETURN (n)-->() AS out"
+    expect:
+      error: "A pattern is a condition, not a value"
+
+  - name: a_pattern_predicate_binds_no_new_variable
+    setup:
+      - "CREATE (:P)"
+    query: "MATCH (n:P) WHERE (n)-[r]->() RETURN n"
+    expect:
+      error: "Variable 'r' is not bound"
