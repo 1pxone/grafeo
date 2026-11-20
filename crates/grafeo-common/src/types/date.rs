@@ -38,7 +38,8 @@ impl Date {
         if day > max_day {
             return None;
         }
-        Some(Self(days_from_civil(year, month, day)))
+        // A year beyond the range of the day count is no date
+        i32::try_from(civil_days(year, month, day)).ok().map(Self)
     }
 
     /// Creates a date from days since Unix epoch.
@@ -193,6 +194,12 @@ impl fmt::Display for Date {
 
 /// Converts (year, month, day) to days since Unix epoch (1970-01-01).
 pub(crate) fn days_from_civil(year: i32, month: u32, day: u32) -> i32 {
+    let days = civil_days(year, month, day);
+    i32::try_from(days).unwrap_or(if days < 0 { i32::MIN } else { i32::MAX })
+}
+
+/// [`days_from_civil`] before it is narrowed to an `i32`.
+fn civil_days(year: i32, month: u32, day: u32) -> i64 {
     let y = if month <= 2 { year - 1 } else { year } as i64;
     let era = y.div_euclid(400);
     // reason: rem_euclid(400) is in [0, 399], always fits u32
@@ -201,8 +208,7 @@ pub(crate) fn days_from_civil(year: i32, month: u32, day: u32) -> i32 {
     let m = month;
     let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + day - 1; // day of year [0, 365]
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; // day of era [0, 146096]
-    let days = era * 146097 + doe as i64 - 719468;
-    i32::try_from(days).unwrap_or(if days < 0 { i32::MIN } else { i32::MAX })
+    era * 146097 + doe as i64 - 719468
 }
 
 /// Converts days since Unix epoch to (year, month, day).
@@ -349,6 +355,16 @@ mod tests {
         let d = Date::parse("-0001-01-01").unwrap();
         assert_eq!(d.year(), -1);
         assert_eq!(d.to_string(), "-0001-01-01");
+    }
+
+    #[test]
+    fn a_year_beyond_the_range_of_the_day_count_is_no_date() {
+        assert_eq!(Date::parse("-999999999-01-01"), None);
+        assert_eq!(Date::parse("+999999999-12-31"), None);
+        assert_eq!(
+            Date::from_ymd(5_000_000, 1, 1).map(Date::year),
+            Some(5_000_000)
+        );
     }
 
     #[test]

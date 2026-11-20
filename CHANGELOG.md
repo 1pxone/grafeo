@@ -2,6 +2,24 @@
 
 All notable changes to Grafeo, for future reference (and enjoyment).
 
+## [0.6.5] - Unreleased
+
+### Added
+
+- **Cypher truncates temporals** ([#804](https://github.com/GrafeoDB/grafeo/issues/804)): `date.truncate`, `datetime.truncate`, `localdatetime.truncate`, `time.truncate` and `localtime.truncate` cut a value down to a unit from `'millennium'` to `'microsecond'` (`'weekYear'`, `'quarter'` and `'week'` among them) and set the fields of an optional map after, as openCypher defines them. A named time zone and nanoseconds in a datetime wait for 0.7.0 ([#806](https://github.com/GrafeoDB/grafeo/issues/806)).
+- **Cypher measures the duration between two temporals** ([#804](https://github.com/GrafeoDB/grafeo/issues/804)): `duration.between` in months, days and the time left, and `duration.inMonths`, `duration.inDays` and `duration.inSeconds` in one unit each; a value without a date, a time or a zone takes it from the other.
+- **Cypher builds a datetime from the epoch** ([#804](https://github.com/GrafeoDB/grafeo/issues/804)): `datetime.fromepoch(seconds, nanoseconds)` and `datetime.fromepochmillis(milliseconds)`, at UTC.
+- **Cypher's named clocks** ([#804](https://github.com/GrafeoDB/grafeo/issues/804)): `date`, `time`, `localtime`, `datetime` and `localdatetime` each take `.statement()`, the statement's instant as the plain form reads it, `.transaction()`, the instant the transaction began, and `.realtime()`, the clock on each call, with an optional offset such as `'+01:00'`.
+
+### Changed
+
+- **Cypher writes temporals as openCypher does**: `toString()` leaves out seconds that are zero, with their fraction (`12:00`, `2024-03-15T10:00+01:00`), and puts the sign on each part of a duration (`PT-1M-0.5S`, `P-1DT-2H`), as java.time and the openCypher TCK write them; it wrote `12:00:00` and `-PT1M0.5S`. GQL and SQL/PGQ are unchanged.
+
+### Fixed
+
+- **An offset without a colon is read**: a time or a datetime in text may end in `+0100`, ISO 8601's basic form, as well as `+01:00`; it was not read.
+- **A year beyond the range of a date is no value**: `date('+999999999-12-31')` gave a wrong date, and a local datetime more than about 292,000 years from 1970 overflowed; both are now null.
+
 ## [0.6.4] - Unreleased
 
 Performance and memory release, in progress: this section lists what has landed so far.

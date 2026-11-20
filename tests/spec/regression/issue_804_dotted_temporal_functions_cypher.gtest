@@ -1,0 +1,76 @@
+# openCypher's temporal functions with a dotted name (#804): the truncations
+# (`date.truncate`), `duration.between` and its `inMonths`, `inDays` and
+# `inSeconds` forms, `datetime.fromepoch` and `datetime.fromepochmillis`, and
+# the `transaction`, `statement` and `realtime` clocks. The openCypher TCK
+# (Temporal1, Temporal4, Temporal9, Temporal10) checks the values; these cases
+# cover what it leaves out: the functions over rows and stored values, the
+# name read as a property when it is not called, and the values beyond the
+# range of a date. The transaction clock is in
+# `crates/grafeo-engine/tests/statement_clock.rs`.
+meta:
+  language: cypher
+  model: lpg
+  section: regression
+  title: Dotted temporal functions
+  dataset: empty
+
+tests:
+
+  - name: a_truncation_runs_for_each_row
+    query: "UNWIND [date('2024-05-17'), date('2023-11-02')] AS d RETURN toString(date.truncate('quarter', d)) AS q ORDER BY q"
+    expect:
+      ordered: true
+      rows:
+        - ["2023-10-01"]
+        - ["2024-04-01"]
+
+  - name: a_stored_value_truncates
+    setup:
+      - "CREATE (:E {at: localdatetime('2024-05-17T10:20:30')})"
+    query: "MATCH (e:E) RETURN toString(localdatetime.truncate('hour', e.at)) AS hour, toString(date.truncate('week', e.at, {dayOfWeek: 5})) AS friday"
+    expect:
+      rows:
+        - ["2024-05-17T10:00", "2024-05-17"]
+
+  - name: a_duration_between_filters_rows
+    query: "UNWIND [date('2024-05-17'), date('2024-05-30')] AS d WITH d, duration.inDays(d, date('2024-06-01')) AS left WHERE left.days > 7 RETURN toString(d) AS d"
+    expect:
+      rows:
+        - ["2024-05-17"]
+
+  - name: a_dotted_name_not_called_is_a_property
+    query: "WITH {truncate: 1, between: 2} AS date RETURN date.truncate AS t, date.between AS b"
+    expect:
+      rows:
+        - [1, 2]
+
+  - name: an_unknown_dotted_function_is_refused
+    query: "RETURN date.fortnight(date('2024-05-17')) AS f"
+    expect:
+      error: "Unknown function 'date.fortnight'"
+
+  - name: an_epoch_in_milliseconds_is_at_utc
+    query: "RETURN toString(datetime.fromepochmillis(237821673987)) AS d, datetime.fromepoch(null, 0) IS NULL AS n"
+    expect:
+      rows:
+        - ["1977-07-15T13:34:33.987Z", true]
+
+  - name: a_clock_reads_its_instant_at_an_offset
+    query: "WITH datetime.statement('+01:00') AS d RETURN d.offset AS o, d = datetime.statement() AS same, date.realtime(null) IS NULL AS n"
+    expect:
+      rows:
+        - ["+01:00", true, true]
+
+  - name: an_offset_may_be_written_without_a_colon
+    query: "RETURN toString(datetime('2015-07-21T21:40:32.142+0100')) AS d, toString(time('16:30+0100')) AS t"
+    expect:
+      rows:
+        - ["2015-07-21T21:40:32.142+01:00", "16:30+01:00"]
+
+  # A year that a date or a local datetime cannot hold is no value, where it
+  # wrapped around before (or overflowed in a debug build).
+  - name: a_year_beyond_the_range_of_a_date_is_no_value
+    query: "RETURN date('+999999999-12-31') IS NULL AS date, localdatetime('-999999999-01-01') IS NULL AS local, localdatetime({year: 300000}) IS NULL AS map, date({year: 300000}) IS NULL AS wide"
+    expect:
+      rows:
+        - [true, true, true, false]

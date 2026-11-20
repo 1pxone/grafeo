@@ -98,8 +98,8 @@ tests:
     expect:
       ordered: true
       rows:
-        - ["2024-03-15T10:00:00+01:00"]
-        - ["2024-03-15T08:00:00"]
+        - ["2024-03-15T10:00+01:00"]
+        - ["2024-03-15T08:00"]
 
   # ---------------------------------------------------------------------------
   # Stored values: a filter, a property index and a range agree
@@ -209,14 +209,14 @@ tests:
       cypher: "WITH time('10:00:00+01:00') AS t RETURN toString(t) AS text, t.hour AS hour, t.offset AS offset, toString(t + duration('PT30M')) AS later"
     expect:
       rows:
-        - ["10:00:00+01:00", 10, "+01:00", "10:30:00+01:00"]
+        - ["10:00+01:00", 10, "+01:00", "10:30+01:00"]
 
   - name: cypher_time_without_an_offset_is_at_utc
     variants:
       cypher: "RETURN toString(time('10:00:00')) AS t, toString(time({hour: 10, minute: 30, timezone: '-05:00'})) AS m, toString(localtime('10:00:00')) AS l"
     expect:
       rows:
-        - ["10:00:00Z", "10:30:00-05:00", "10:00:00"]
+        - ["10:00Z", "10:30-05:00", "10:00"]
 
   - name: cypher_keeps_zoned_and_local_times_apart
     variants:
@@ -236,7 +236,7 @@ tests:
       cypher: "RETURN toString(time(datetime('2024-03-15T10:00:00+01:00'))) AS t"
     expect:
       rows:
-        - ["10:00:00+01:00"]
+        - ["10:00+01:00"]
 
   - name: gql_finds_stored_times_at_the_same_instant
     setup:

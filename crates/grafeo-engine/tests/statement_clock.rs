@@ -3,7 +3,10 @@
 //! plan. A statement's rows all see it; the next statement, also in the same
 //! transaction and also when its text is the same (a cached plan), reads the
 //! clock again. The per-row cases run on every runner in
-//! `tests/spec/rosetta/statement_clock.gtest`.
+//! `tests/spec/rosetta/statement_clock.gtest`. openCypher's named clocks
+//! (#804) choose: `date.statement()` reads the statement's instant,
+//! `date.transaction()` the instant its transaction began, and
+//! `date.realtime()` the clock on each call.
 //!
 //! ```bash
 //! cargo test -p grafeo-engine --all-features --test main statement_clock::
@@ -139,4 +142,64 @@ fn a_procedure_body_reads_the_calling_statements_clock() {
         [Value::Int64(1), Value::Bool(true)],
         "every call sees the statement's instant"
     );
+}
+
+/// The one row of `query`, in Cypher.
+#[cfg(feature = "cypher")]
+fn cypher_row(session: &Session, query: &str) -> Vec<Value> {
+    match session.execute_cypher(query).unwrap().rows() {
+        [row] => row.clone(),
+        rows => panic!("one row, got {rows:?}"),
+    }
+}
+
+/// The microseconds of a local datetime.
+#[cfg(feature = "cypher")]
+fn micros(value: &Value) -> i64 {
+    match value {
+        Value::Timestamp(at) => at.as_micros(),
+        other => panic!("a local datetime, got {other:?}"),
+    }
+}
+
+/// `localdatetime.transaction()` is the instant the transaction began, in
+/// each of its statements, while `localdatetime.statement()` moves on with
+/// each.
+#[cfg(feature = "cypher")]
+#[test]
+fn a_transaction_clock_reads_when_the_transaction_began() {
+    let db = GrafeoDB::new_in_memory();
+    let mut session = db.session();
+    session.begin_transaction().unwrap();
+    std::thread::sleep(TICK);
+    let query = "RETURN localdatetime.transaction() AS t, localdatetime.statement() AS s";
+    let first: Vec<i64> = cypher_row(&session, query).iter().map(micros).collect();
+    std::thread::sleep(TICK);
+    let second: Vec<i64> = cypher_row(&session, query).iter().map(micros).collect();
+    session.commit().unwrap();
+    assert_eq!(first[0], second[0], "one transaction, one instant");
+    assert!(first[0] < first[1], "it began before its first statement");
+    assert!(first[1] < second[1], "each statement reads the clock again");
+}
+
+/// Outside an explicit transaction a statement is its own transaction, and
+/// the realtime clock is read on every call.
+#[cfg(feature = "cypher")]
+#[test]
+fn a_statement_alone_is_its_transaction_and_realtime_moves_on() {
+    let db = GrafeoDB::new_in_memory();
+    let session = db.session();
+    let row = cypher_row(
+        &session,
+        "RETURN localdatetime.transaction() = localdatetime.statement() AS same, \
+         localdatetime.statement() = localdatetime() AS statement",
+    );
+    assert_eq!(row, [Value::Bool(true), Value::Bool(true)]);
+    let row = cypher_row(
+        &session,
+        "UNWIND range(1, 100000) AS i \
+         RETURN count(DISTINCT localdatetime.realtime()) > 1 AS moves, \
+         min(localdatetime.realtime()) >= localdatetime.statement() AS after",
+    );
+    assert_eq!(row, [Value::Bool(true), Value::Bool(true)]);
 }

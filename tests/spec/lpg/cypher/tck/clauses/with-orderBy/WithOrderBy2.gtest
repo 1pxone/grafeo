@@ -750,9 +750,6 @@ tests:
 
   # [13] Sort by a local time expression in ascending order #1
   - name: s13_sort_by_a_local_time_expression_in_ascending_order_1
-    xfail:
-      spec: "openCypher TCK 2024.3 WithOrderBy2: [13] Sort by a local time expression in ascending order #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -780,9 +777,6 @@ tests:
 
   # [13] Sort by a local time expression in ascending order #2
   - name: s13_sort_by_a_local_time_expression_in_ascending_order_2
-    xfail:
-      spec: "openCypher TCK 2024.3 WithOrderBy2: [13] Sort by a local time expression in ascending order #2"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -810,9 +804,6 @@ tests:
 
   # [13] Sort by a local time expression in ascending order #3
   - name: s13_sort_by_a_local_time_expression_in_ascending_order_3
-    xfail:
-      spec: "openCypher TCK 2024.3 WithOrderBy2: [13] Sort by a local time expression in ascending order #3"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -975,9 +966,6 @@ tests:
 
   # [16] Sort by a time expression in descending order #1
   - name: s16_sort_by_a_time_expression_in_descending_order_1
-    xfail:
-      spec: "openCypher TCK 2024.3 WithOrderBy2: [16] Sort by a time expression in descending order #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1005,9 +993,6 @@ tests:
 
   # [16] Sort by a time expression in descending order #2
   - name: s16_sort_by_a_time_expression_in_descending_order_2
-    xfail:
-      spec: "openCypher TCK 2024.3 WithOrderBy2: [16] Sort by a time expression in descending order #2"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0

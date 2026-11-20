@@ -59,9 +59,10 @@ fn check(db: &GrafeoDB, stage: &str) {
             "cypher",
             "MATCH (e:Event) RETURN toString(e.at) + ' ' + toString(e.clock)"
         ),
+        // openCypher writes no seconds that are zero
         [
-            "2024-03-15T09:00:00 09:00:00",
-            "2024-03-15T10:00:00+01:00 10:00:00+01:00"
+            "2024-03-15T09:00 09:00",
+            "2024-03-15T10:00+01:00 10:00+01:00"
         ],
         "{stage}: the stored values"
     );

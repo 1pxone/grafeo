@@ -222,3 +222,30 @@ null. Two zoned datetimes compare by their instant in both languages.
     RETURN zoned_datetime('2024-03-15T10:00:00+01:00') = local_datetime('2024-03-15T09:00:00') AS eq
     -- true: the local value is read at UTC
     ```
+
+## Temporal Functions and Their Text
+
+Cypher's temporal functions with a dotted name have GQL forms without the dot: `date.truncate('month', d)` truncates
+as `date_trunc('month', d)` does, and also to a millennium, a century, a decade, a week year, a quarter, a week, a
+millisecond or a microsecond, with an optional map of fields to set after. `duration.between(a, b)` and
+`duration.inMonths`, `duration.inDays` and `duration.inSeconds` give the duration between two temporals, and
+`datetime.fromepoch(s, ns)` and `datetime.fromepochmillis(ms)` an instant from the epoch. `date.statement()` reads the
+statement's clock, as `date()` does in both languages, `date.transaction()` the instant the transaction began, and
+`date.realtime()` the clock on each call; `time`, `localtime`, `datetime` and `localdatetime` take the same three.
+
+`toString()` writes a temporal as openCypher does in Cypher, and as ISO 8601 does in GQL: Cypher leaves out seconds
+that are zero and puts the sign on each part of a duration.
+
+=== "Cypher"
+
+    ```cypher
+    RETURN toString(localtime('12:00:00')) AS t, toString(-duration('PT1M30S')) AS d
+    // '12:00', 'PT-1M-30S'
+    ```
+
+=== "GQL"
+
+    ```sql
+    RETURN toString(TIME '12:00:00') AS t, toString(-DURATION 'PT1M30S') AS d
+    -- '12:00:00', '-PT1M30S'
+    ```

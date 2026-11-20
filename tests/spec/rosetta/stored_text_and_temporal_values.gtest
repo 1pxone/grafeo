@@ -61,11 +61,20 @@ tests:
       - "INSERT (:P {at: zoned_datetime('2024-03-15T10:00:00+01:00'), stay: DURATION 'PT1H', expected: zoned_datetime('2024-03-15T11:00:00+01:00')})"
     variants:
       gql: "MATCH (p:P) RETURN p.at + p.stay = p.expected AS later, toString(p.at + p.stay) AS text, toString(p.at - p.stay) AS earlier"
-      cypher: "MATCH (p:P) RETURN p.at + p.stay = p.expected AS later, toString(p.at + p.stay) AS text, toString(p.at - p.stay) AS earlier"
       sql-pgq: "SELECT * FROM GRAPH_TABLE (MATCH (p:P) COLUMNS (p.at + p.stay = p.expected AS later, CAST(p.at + p.stay AS VARCHAR) AS text, CAST(p.at - p.stay AS VARCHAR) AS earlier))"
     expect:
       rows:
         - [true, "2024-03-15T11:00:00+01:00", "2024-03-15T09:00:00+01:00"]
+
+  # openCypher writes a time without its seconds when they are zero, as java.time does (the TCK's text).
+  - name: a_stored_zoned_datetime_plus_a_stored_duration_in_opencypher_text
+    setup:
+      - "INSERT (:P {at: zoned_datetime('2024-03-15T10:00:00+01:00'), stay: DURATION 'PT1H', expected: zoned_datetime('2024-03-15T11:00:00+01:00')})"
+    variants:
+      cypher: "MATCH (p:P) RETURN p.at + p.stay = p.expected AS later, toString(p.at + p.stay) AS text, toString(p.at - p.stay) AS earlier"
+    expect:
+      rows:
+        - [true, "2024-03-15T11:00+01:00", "2024-03-15T09:00+01:00"]
 
   - name: two_stored_zoned_datetimes_differ_by_a_duration
     setup:

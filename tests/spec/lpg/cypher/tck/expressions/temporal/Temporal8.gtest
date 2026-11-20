@@ -415,9 +415,6 @@ tests:
 
   # [6] Should add or subtract durations #4
   - name: s6_should_add_or_subtract_durations_4
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal8: [6] Should add or subtract durations #4"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0

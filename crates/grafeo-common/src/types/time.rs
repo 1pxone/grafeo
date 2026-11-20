@@ -307,18 +307,24 @@ fn parse_offset_suffix(s: &str) -> (&str, Option<i32>) {
     if let Some(rest) = s.strip_suffix('Z') {
         return (rest, Some(0));
     }
-    // Look for +HH:MM or -HH:MM at the end, each field two digits
-    let Some(sign_pos) = s.len().checked_sub(6) else {
-        return (s, None);
-    };
-    if let [sign @ (b'+' | b'-'), h1, h2, b':', m1, m2] = s.as_bytes()[sign_pos..]
-        && [h1, h2, m1, m2].iter().all(u8::is_ascii_digit)
-    {
-        let field = |high: u8, low: u8| i32::from(high - b'0') * 10 + i32::from(low - b'0');
-        let sign: i32 = if sign == b'+' { 1 } else { -1 };
-        let seconds = field(h1, h2) * 3600 + field(m1, m2) * 60;
-        // The bytes before an ASCII sign end a character
-        return (&s[..sign_pos], Some(sign * seconds));
+    // Look for +HH:MM or -HH:MM at the end, or +HHMM (ISO 8601's basic
+    // format), each field two digits
+    for (length, colon) in [(6, true), (5, false)] {
+        let Some(sign_pos) = s.len().checked_sub(length) else {
+            continue;
+        };
+        let (sign, h1, h2, m1, m2) = match s.as_bytes()[sign_pos..] {
+            [sign, h1, h2, b':', m1, m2] if colon => (sign, h1, h2, m1, m2),
+            [sign, h1, h2, m1, m2] if !colon => (sign, h1, h2, m1, m2),
+            _ => continue,
+        };
+        if matches!(sign, b'+' | b'-') && [h1, h2, m1, m2].iter().all(u8::is_ascii_digit) {
+            let field = |high: u8, low: u8| i32::from(high - b'0') * 10 + i32::from(low - b'0');
+            let sign: i32 = if sign == b'+' { 1 } else { -1 };
+            let seconds = field(h1, h2) * 3600 + field(m1, m2) * 60;
+            // The bytes before an ASCII sign end a character
+            return (&s[..sign_pos], Some(sign * seconds));
+        }
     }
     (s, None)
 }
@@ -463,6 +469,19 @@ mod tests {
 
         let t = Time::parse("14:30:00-05:30").unwrap();
         assert_eq!(t.offset_seconds(), Some(-19800));
+    }
+
+    #[test]
+    fn an_offset_may_be_written_without_a_colon() {
+        let t = Time::parse("16:30+0100").unwrap();
+        assert_eq!((t.hour(), t.minute()), (16, 30));
+        assert_eq!(t.offset_seconds(), Some(3600));
+        let t = Time::parse("21:40:32.142-0530").unwrap();
+        assert_eq!(t.nanosecond(), 142_000_000);
+        assert_eq!(t.offset_seconds(), Some(-19800));
+        for text in ["12:00+-100", "12:00:00+01-1", "12:00:00+1:00"] {
+            assert_eq!(Time::parse(text), None, "{text}");
+        }
     }
 
     #[test]

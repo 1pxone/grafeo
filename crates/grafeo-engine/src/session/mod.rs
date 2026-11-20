@@ -470,6 +470,9 @@ pub(crate) struct SessionInner {
     /// (`START TRANSACTION`, `COMMIT`, `ROLLBACK`) can manage transactions
     /// from within `execute(&self)`.
     current_transaction: parking_lot::Mutex<Option<TransactionId>>,
+    /// When the current transaction began, which openCypher's `transaction`
+    /// clocks (`date.transaction()`) read.
+    transaction_started: parking_lot::Mutex<grafeo_common::types::Timestamp>,
     /// Whether the current transaction is read-only (blocks mutations).
     read_only_tx: parking_lot::Mutex<bool>,
     /// Whether the database itself is read-only (set at open time, never changes).
@@ -655,6 +658,7 @@ impl SessionInner {
             #[cfg(feature = "gql")]
             slots: cfg.slots,
             current_transaction: parking_lot::Mutex::new(None),
+            transaction_started: parking_lot::Mutex::new(grafeo_common::types::Timestamp::now()),
             read_only_tx: parking_lot::Mutex::new(cfg.read_only),
             db_read_only: cfg.read_only,
             identity: Arc::new(cfg.identity),
@@ -853,6 +857,7 @@ impl SessionInner {
             #[cfg(feature = "gql")]
             slots: cfg.slots,
             current_transaction: parking_lot::Mutex::new(None),
+            transaction_started: parking_lot::Mutex::new(grafeo_common::types::Timestamp::now()),
             read_only_tx: parking_lot::Mutex::new(cfg.read_only),
             db_read_only: cfg.read_only,
             identity: Arc::new(cfg.identity),
@@ -5566,6 +5571,7 @@ impl SessionInner {
             None => self.transaction_manager.begin(),
         };
         *current = Some(transaction_id);
+        *self.transaction_started.lock() = grafeo_common::types::Timestamp::now();
         self.explicit_transaction
             .store(explicit, std::sync::atomic::Ordering::Relaxed);
         let changes = self.transaction_manager.changes(transaction_id);
@@ -7140,7 +7146,11 @@ impl SessionInner {
             home_graph: self.home_graph.clone(),
             temporal_comparison,
             language,
-            statement_clock: grafeo_core::execution::operators::StatementClock::now(),
+            statement_clock: match transaction_id {
+                Some(_) => grafeo_core::execution::operators::StatementClock::now()
+                    .in_transaction(*self.transaction_started.lock()),
+                None => grafeo_core::execution::operators::StatementClock::now(),
+            },
             warnings: self.statement_warnings(),
         }
     }

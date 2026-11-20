@@ -295,9 +295,6 @@ tests:
 
   # [2] Should construct week localdatetime #1
   - name: s2_should_construct_week_localdatetime_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [2] Should construct week localdatetime #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -550,9 +547,6 @@ tests:
 
   # [3] Should construct week datetime #1
   - name: s3_should_construct_week_datetime_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [3] Should construct week datetime #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1011,9 +1005,6 @@ tests:
 
   # [5] Should construct local time #6
   - name: s5_should_construct_local_time_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [5] Should construct local time #6"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1028,9 +1019,6 @@ tests:
 
   # [5] Should construct local time #7
   - name: s5_should_construct_local_time_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [5] Should construct local time #7"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1138,9 +1126,6 @@ tests:
 
   # [6] Should construct time #7
   - name: s6_should_construct_time_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [6] Should construct time #7"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1155,9 +1140,6 @@ tests:
 
   # [6] Should construct time #8
   - name: s6_should_construct_time_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [6] Should construct time #8"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1234,9 +1216,6 @@ tests:
 
   # [6] Should construct time #13
   - name: s6_should_construct_time_13
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [6] Should construct time #13"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1251,9 +1230,6 @@ tests:
 
   # [6] Should construct time #14
   - name: s6_should_construct_time_14
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [6] Should construct time #14"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1367,9 +1343,6 @@ tests:
 
   # [7] Should construct local date time #7
   - name: s7_should_construct_local_date_time_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [7] Should construct local date time #7"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1384,9 +1357,6 @@ tests:
 
   # [7] Should construct local date time #8
   - name: s7_should_construct_local_date_time_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [7] Should construct local date time #8"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1401,9 +1371,6 @@ tests:
 
   # [7] Should construct local date time #9
   - name: s7_should_construct_local_date_time_9
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [7] Should construct local date time #9"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1775,9 +1742,6 @@ tests:
 
   # [7] Should construct local date time #31
   - name: s7_should_construct_local_date_time_31
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [7] Should construct local date time #31"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1874,9 +1838,6 @@ tests:
 
   # [8] Should construct date time with default time zone #6
   - name: s8_should_construct_date_time_with_default_time_zone_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [8] Should construct date time with default time zone #6"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1891,9 +1852,6 @@ tests:
 
   # [8] Should construct date time with default time zone #7
   - name: s8_should_construct_date_time_with_default_time_zone_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [8] Should construct date time with default time zone #7"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -1908,9 +1866,6 @@ tests:
 
   # [8] Should construct date time with default time zone #8
   - name: s8_should_construct_date_time_with_default_time_zone_8
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [8] Should construct date time with default time zone #8"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -2282,9 +2237,6 @@ tests:
 
   # [8] Should construct date time with default time zone #30
   - name: s8_should_construct_date_time_with_default_time_zone_30
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [8] Should construct date time with default time zone #30"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -2364,9 +2316,6 @@ tests:
 
   # [9] Should construct date time with offset time zone #5
   - name: s9_should_construct_date_time_with_offset_time_zone_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [9] Should construct date time with offset time zone #5"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -2381,9 +2330,6 @@ tests:
 
   # [9] Should construct date time with offset time zone #6
   - name: s9_should_construct_date_time_with_offset_time_zone_6
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [9] Should construct date time with offset time zone #6"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -2398,9 +2344,6 @@ tests:
 
   # [9] Should construct date time with offset time zone #7
   - name: s9_should_construct_date_time_with_offset_time_zone_7
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [9] Should construct date time with offset time zone #7"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -2772,9 +2715,6 @@ tests:
 
   # [9] Should construct date time with offset time zone #29
   - name: s9_should_construct_date_time_with_offset_time_zone_29
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal1: [9] Should construct date time with offset time zone #29"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -3284,7 +3224,7 @@ tests:
   - name: s11_should_construct_date_time_from_epoch
     xfail:
       spec: "openCypher TCK 2024.3 Temporal1: [11] Should construct date time from epoch"
-      issue: fix in 0.6.5
+      issue: fix in 0.7.0
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0

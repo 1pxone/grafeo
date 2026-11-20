@@ -111,10 +111,17 @@ tests:
   - name: a_sign_on_a_duration_negates_it_or_keeps_it
     variants:
       gql: "RETURN toString(-DURATION 'P1DT2H') AS minus, toString(+DURATION 'PT5M') AS plus, -(-DURATION 'P1D') = DURATION 'P1D' AS twice"
-      cypher: "RETURN toString(-duration('P1DT2H')) AS minus, toString(+duration('PT5M')) AS plus, -(-duration('P1D')) = duration('P1D') AS twice"
     expect:
       rows:
         - ["-P1DT2H", "PT5M", true]
+
+  # openCypher writes the sign of a duration on each component, as java.time does (the TCK's text).
+  - name: a_sign_on_a_duration_negates_it_or_keeps_it_in_opencypher_text
+    variants:
+      cypher: "RETURN toString(-duration('P1DT2H')) AS minus, toString(+duration('PT5M')) AS plus, -(-duration('P1D')) = duration('P1D') AS twice"
+    expect:
+      rows:
+        - ["P-1DT-2H", "PT5M", true]
 
   - name: minus_of_the_smallest_integer_is_out_of_range
     variants:

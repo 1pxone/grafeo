@@ -42,6 +42,7 @@ impl SessionInner {
             #[cfg(feature = "gql")]
             slots: cfg.slots,
             current_transaction: parking_lot::Mutex::new(None),
+            transaction_started: parking_lot::Mutex::new(grafeo_common::types::Timestamp::now()),
             read_only_tx: parking_lot::Mutex::new(cfg.read_only),
             db_read_only: cfg.read_only,
             identity: Arc::new(cfg.identity),

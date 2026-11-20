@@ -239,6 +239,32 @@ builtin_functions! {
     Minute => ["minute"], "1", Temporal, immutable;
     Second => ["second"], "1", Temporal, immutable;
     DateTrunc => ["date_trunc", "truncate"], "2", Temporal, immutable;
+    TruncateDate => ["date.truncate"], "2-3", Temporal, immutable;
+    TruncateTime => ["time.truncate"], "2-3", Temporal, immutable;
+    TruncateLocalTime => ["localtime.truncate"], "2-3", Temporal, immutable;
+    TruncateDatetime => ["datetime.truncate"], "2-3", Temporal, immutable;
+    TruncateLocalDatetime => ["localdatetime.truncate"], "2-3", Temporal, immutable;
+    DurationBetween => ["duration.between"], "2", Temporal, immutable;
+    DurationInMonths => ["duration.inMonths"], "2", Temporal, immutable;
+    DurationInDays => ["duration.inDays"], "2", Temporal, immutable;
+    DurationInSeconds => ["duration.inSeconds"], "2", Temporal, immutable;
+    DatetimeFromEpoch => ["datetime.fromepoch"], "2", Temporal, immutable;
+    DatetimeFromEpochMillis => ["datetime.fromepochmillis"], "1", Temporal, immutable;
+    DateTransaction => ["date.transaction"], "0-1", Temporal, stable;
+    DateStatement => ["date.statement"], "0-1", Temporal, stable;
+    DateRealtime => ["date.realtime"], "0-1", Temporal, volatile;
+    TimeTransaction => ["time.transaction"], "0-1", Temporal, stable;
+    TimeStatement => ["time.statement"], "0-1", Temporal, stable;
+    TimeRealtime => ["time.realtime"], "0-1", Temporal, volatile;
+    LocalTimeTransaction => ["localtime.transaction"], "0-1", Temporal, stable;
+    LocalTimeStatement => ["localtime.statement"], "0-1", Temporal, stable;
+    LocalTimeRealtime => ["localtime.realtime"], "0-1", Temporal, volatile;
+    DatetimeTransaction => ["datetime.transaction"], "0-1", Temporal, stable;
+    DatetimeStatement => ["datetime.statement"], "0-1", Temporal, stable;
+    DatetimeRealtime => ["datetime.realtime"], "0-1", Temporal, volatile;
+    LocalDatetimeTransaction => ["localdatetime.transaction"], "0-1", Temporal, stable;
+    LocalDatetimeStatement => ["localdatetime.statement"], "0-1", Temporal, stable;
+    LocalDatetimeRealtime => ["localdatetime.realtime"], "0-1", Temporal, volatile;
     Path => ["path"], "1+", Path, immutable;
     PathLength => ["path_length"], "1", Path, immutable;
     Nodes => ["nodes"], "1", Path, immutable;
@@ -522,7 +548,7 @@ mod tests {
                 assert!(previous.is_none_or(|p| p == function), "{alias}");
             }
         }
-        assert_eq!(BuiltinFunction::ALL.len(), 111);
+        assert_eq!(BuiltinFunction::ALL.len(), 137);
     }
 
     #[test]

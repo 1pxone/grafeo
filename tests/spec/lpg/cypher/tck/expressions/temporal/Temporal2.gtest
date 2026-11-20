@@ -289,9 +289,6 @@ tests:
 
   # [2] Should parse local time from string #5
   - name: s2_should_parse_local_time_from_string_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal2: [2] Should parse local time from string #5"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -340,9 +337,6 @@ tests:
 
   # [3] Should parse time from string #1
   - name: s3_should_parse_time_from_string_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal2: [3] Should parse time from string #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -405,9 +399,6 @@ tests:
 
   # [3] Should parse time from string #5
   - name: s3_should_parse_time_from_string_5
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal2: [3] Should parse time from string #5"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0
@@ -589,9 +580,6 @@ tests:
 
   # [5] Should parse date time from string #1
   - name: s5_should_parse_date_time_from_string_1
-    xfail:
-      spec: "openCypher TCK 2024.3 Temporal2: [5] Should parse date time from string #1"
-      issue: fix in 0.6.5
     runner_gap:
       runners: [wasm]
       issue: fix in 0.7.0

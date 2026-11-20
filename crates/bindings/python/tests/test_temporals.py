@@ -178,7 +178,7 @@ def test_an_offset_that_is_not_whole_minutes_is_refused_with_22009(db, v):
 def test_a_whole_minute_offset_is_kept(db):
     v = time(12, 0, tzinfo=timezone(timedelta(hours=5, minutes=45)))
     assert value(db, "$v", {"v": v}) == v
-    assert text_of(db, v) == "12:00:00+05:45"
+    assert text_of(db, v) == "12:00+05:45"
 
 
 @pytest.mark.parametrize(

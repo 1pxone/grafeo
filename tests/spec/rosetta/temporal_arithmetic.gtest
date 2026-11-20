@@ -154,14 +154,14 @@ tests:
       cypher: "WITH datetime('2024-03-15T10:00:00') AS d, datetime({year: 2024, month: 3, day: 15, hour: 10, timezone: '+02:00'}) AS m RETURN toString(d) AS d, d.offset AS o, toString(m) AS m, m.hour AS h"
     expect:
       rows:
-        - ["2024-03-15T10:00:00Z", "Z", "2024-03-15T10:00:00+02:00", 10]
+        - ["2024-03-15T10:00Z", "Z", "2024-03-15T10:00+02:00", 10]
 
   - name: a_cypher_datetime_keeps_its_offset_in_its_text
     variants:
       cypher: "RETURN toString(datetime('2024-03-15T10:00:00+01:00')) AS z, toString(localdatetime('2024-03-15T10:00:00')) AS l"
     expect:
       rows:
-        - ["2024-03-15T10:00:00+01:00", "2024-03-15T10:00:00"]
+        - ["2024-03-15T10:00+01:00", "2024-03-15T10:00"]
 
   - name: a_local_datetime_has_no_zone_in_its_text
     query: "RETURN toString(datetime('2024-03-15T10:00:00')) AS l, CAST(local_datetime('2024-03-15T10:00:00.25') AS STRING) AS c, toString(zoned_datetime('2024-03-15T10:00:00+01:00')) AS z"

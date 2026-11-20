@@ -2197,6 +2197,32 @@ impl<'a> Parser<'a> {
                     (self.lexer, self.current, self.previous) = saved;
                 }
 
+                // A function in a namespace (`date.truncate(...)`,
+                // `duration.between(...)`): a property access is never called.
+                if self.current.kind == TokenKind::Dot {
+                    let saved = (
+                        self.lexer.clone(),
+                        self.current.clone(),
+                        self.previous.clone(),
+                    );
+                    let mut dotted = name.clone();
+                    while self.current.kind == TokenKind::Dot {
+                        self.advance();
+                        if !self.can_be_identifier() {
+                            break;
+                        }
+                        dotted.push('.');
+                        dotted.push_str(&self.get_identifier_text());
+                        self.advance();
+                    }
+                    if self.current.kind == TokenKind::LParen
+                        && self.previous.kind != TokenKind::Dot
+                    {
+                        return self.parse_function_call(dotted);
+                    }
+                    (self.lexer, self.current, self.previous) = saved;
+                }
+
                 // Check if function call (its extra level of nesting is
                 // counted where the postfix expression starts)
                 if self.current.kind == TokenKind::LParen {
@@ -4067,6 +4093,53 @@ mod tests {
         {
             assert!(*distinct);
         }
+    }
+
+    /// The first item of `RETURN ...`.
+    fn returned(query: &str) -> Expression {
+        let Statement::Query(Query { clauses, .. }) = parse_ok(query) else {
+            panic!("`{query}` is no query");
+        };
+        let Clause::Return(ReturnClause {
+            items: ReturnItems::Explicit(items),
+            ..
+        }) = &clauses[0]
+        else {
+            panic!("`{query}` returns no item");
+        };
+        items[0].expression.clone()
+    }
+
+    #[test]
+    fn a_function_in_a_namespace_is_called_by_its_dotted_name() {
+        for (query, called, arguments) in [
+            ("RETURN date.truncate('year', d)", "date.truncate", 2),
+            ("RETURN duration.inSeconds(a, b)", "duration.inSeconds", 2),
+            ("RETURN datetime.statement()", "datetime.statement", 0),
+            ("RETURN a.b.c(1)", "a.b.c", 1),
+        ] {
+            let Expression::FunctionCall { name, args, .. } = returned(query) else {
+                panic!("`{query}` calls no function");
+            };
+            assert_eq!(
+                (name.as_str(), args.len()),
+                (called, arguments),
+                "`{query}`"
+            );
+        }
+    }
+
+    #[test]
+    fn a_property_access_is_not_a_namespace() {
+        let Expression::PropertyAccess { base, property } = returned("RETURN date.year") else {
+            panic!("`date.year` is no property access");
+        };
+        assert_eq!(property, "year");
+        assert!(matches!(*base, Expression::Variable(ref name) if name == "date"));
+        assert!(matches!(
+            returned("RETURN n.a.b"),
+            Expression::PropertyAccess { .. }
+        ));
     }
 
     #[test]

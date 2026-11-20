@@ -87,10 +87,17 @@ tests:
   - name: time_of_a_zoned_datetime_keeps_the_offset
     variants:
       gql: "RETURN toString(time(zoned_datetime('2024-03-01T00:30:00+01:00'))) AS t"
-      cypher: "RETURN toString(time(zoned_datetime('2024-03-01T00:30:00+01:00'))) AS t"
     expect:
       rows:
         - ["00:30:00+01:00"]
+
+  # openCypher writes a time without its seconds when they are zero, as java.time does (the TCK's text).
+  - name: time_of_a_zoned_datetime_keeps_the_offset_in_opencypher_text
+    variants:
+      cypher: "RETURN toString(time(zoned_datetime('2024-03-01T00:30:00+01:00'))) AS t"
+    expect:
+      rows:
+        - ["00:30+01:00"]
 
   - name: datetime_of_a_zoned_datetime_is_its_instant
     variants:
@@ -103,10 +110,17 @@ tests:
   - name: a_zoned_datetime_west_of_utc
     variants:
       gql: "RETURN toString(date(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS d, toString(time(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS t"
-      cypher: "RETURN toString(date(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS d, toString(time(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS t"
     expect:
       rows:
         - ["2024-03-01", "23:30:00-05:00"]
+
+  # openCypher writes a time without its seconds when they are zero, as java.time does (the TCK's text).
+  - name: a_zoned_datetime_west_of_utc_in_opencypher_text
+    variants:
+      cypher: "RETURN toString(date(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS d, toString(time(zoned_datetime('2024-03-01T23:30:00-05:00'))) AS t"
+    expect:
+      rows:
+        - ["2024-03-01", "23:30-05:00"]
 
   # ---------------------------------------------------------------------------
   # A label added to a node converts its values

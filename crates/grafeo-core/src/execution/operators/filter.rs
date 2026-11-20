@@ -4,6 +4,7 @@ use super::functions::{BuiltinFunction, FunctionGroup};
 use super::project::{
     field_type, holds_entities, item_type_at, list_type, reversed_type, slice_type, struct_type,
 };
+use super::temporal;
 use super::{Operator, OperatorError, OperatorResult};
 use crate::execution::chunk::DEFAULT_CHUNK_SIZE;
 use crate::execution::{ChunkZoneHints, DataChunk, SelectionVector, ValueVector};
@@ -37,15 +38,25 @@ use std::sync::Arc;
 /// The LOCAL DATETIME a text names: a date (at midnight) or a date and a
 /// time; a time with an offset gives its instant.
 fn local_datetime_of_text(text: &str) -> Option<grafeo_common::types::Timestamp> {
-    use grafeo_common::types::{Date, Time, Timestamp};
+    use grafeo_common::types::{Date, Time};
     if let Some(date) = Date::parse(text) {
-        return Some(date.to_timestamp());
+        return timestamp_of(date, Time::default());
     }
     let (date, time) = text.split_once('T')?;
-    Some(Timestamp::from_date_time(
-        Date::parse(date)?,
-        Time::parse(time)?,
-    ))
+    timestamp_of(Date::parse(date)?, Time::parse(time)?)
+}
+
+/// A date and a time as a timestamp, which counts microseconds in an `i64`:
+/// `None` for a date more than about 292,000 years from 1970.
+fn timestamp_of(
+    date: grafeo_common::types::Date,
+    time: grafeo_common::types::Time,
+) -> Option<grafeo_common::types::Timestamp> {
+    // The days of `i64::MAX` microseconds, less one for the time of day and
+    // its offset.
+    const MAX_DAYS: i64 = i64::MAX / 86_400_000_000 - 1;
+    (i64::from(date.as_days()).abs() <= MAX_DAYS)
+        .then(|| grafeo_common::types::Timestamp::from_date_time(date, time))
 }
 
 /// The LOCAL DATETIME a map names: `{epochMillis: n}` and `{epochSeconds: n,
@@ -75,7 +86,7 @@ fn local_datetime_of_map(
     let nanosecond = u32::try_from(map_int_or(m, "nanosecond", 0)?).ok()?;
     let date = Date::from_ymd(year, month, day)?;
     let time = Time::from_hms_nano(hour, minute, second, nanosecond)?;
-    Some(Timestamp::from_date_time(date, time))
+    timestamp_of(date, time)
 }
 
 /// The ZONED DATETIME a map names: as [`local_datetime_of_map`], in the
@@ -702,27 +713,52 @@ impl Default for LazyValue {
 /// and `zoned` forms), so every row of one statement sees one time and two
 /// clock calls agree: ISO GQL and SQL fix the current datetime for a
 /// statement, and openCypher's `timestamp()` "returns the same value during
-/// one entire query". `rand()` is drawn per call.
+/// one entire query". `rand()` is drawn per call. It also keeps the instant
+/// the statement's transaction started, which openCypher's `transaction`
+/// clocks (`date.transaction()`) read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StatementClock(grafeo_common::types::Timestamp);
+pub struct StatementClock {
+    statement: grafeo_common::types::Timestamp,
+    transaction: grafeo_common::types::Timestamp,
+}
 
 impl StatementClock {
-    /// The clock of a statement that starts now.
+    /// The clock of a statement that starts now, in a transaction of its own.
     #[must_use]
     pub fn now() -> Self {
-        Self(grafeo_common::types::Timestamp::now())
+        Self::at(grafeo_common::types::Timestamp::now())
     }
 
-    /// The clock of a statement that started at `instant`.
+    /// The clock of a statement that started at `instant`, in a transaction
+    /// of its own.
     #[must_use]
     pub const fn at(instant: grafeo_common::types::Timestamp) -> Self {
-        Self(instant)
+        Self {
+            statement: instant,
+            transaction: instant,
+        }
+    }
+
+    /// The clock of the statement in a transaction that started at
+    /// `started`.
+    #[must_use]
+    pub const fn in_transaction(self, started: grafeo_common::types::Timestamp) -> Self {
+        Self {
+            statement: self.statement,
+            transaction: started,
+        }
     }
 
     /// The instant the statement started.
     #[must_use]
     pub const fn instant(self) -> grafeo_common::types::Timestamp {
-        self.0
+        self.statement
+    }
+
+    /// The instant the statement's transaction started.
+    #[must_use]
+    pub const fn transaction_instant(self) -> grafeo_common::types::Timestamp {
+        self.transaction
     }
 }
 
@@ -3039,6 +3075,12 @@ impl ExpressionPredicate {
                 }
                 match self.eval_expr(&args[0], chunk, row)? {
                     Value::Null => Some(Value::Null),
+                    // openCypher writes a temporal as java.time does.
+                    value if self.follows_opencypher() => Some(Value::String(
+                        temporal::opencypher_text(&value)
+                            .unwrap_or_else(|| value_text(&value))
+                            .into(),
+                    )),
                     value => Some(Value::String(value_text(&value).into())),
                 }
             }
@@ -4321,6 +4363,120 @@ impl ExpressionPredicate {
                     Value::ZonedDatetime(zdt) => Some(Value::ZonedDatetime(zdt.truncate(&unit)?)),
                     _ => None,
                 }
+            }
+            BuiltinFunction::TruncateDate
+            | BuiltinFunction::TruncateTime
+            | BuiltinFunction::TruncateLocalTime
+            | BuiltinFunction::TruncateDatetime
+            | BuiltinFunction::TruncateLocalDatetime => {
+                let kind = match function {
+                    BuiltinFunction::TruncateDate => temporal::Kind::Date,
+                    BuiltinFunction::TruncateTime => temporal::Kind::Time,
+                    BuiltinFunction::TruncateLocalTime => temporal::Kind::LocalTime,
+                    BuiltinFunction::TruncateDatetime => temporal::Kind::Datetime,
+                    _ => temporal::Kind::LocalDatetime,
+                };
+                let mut values = Vec::with_capacity(args.len());
+                for arg in args {
+                    values.push(self.eval_expr(arg, chunk, row)?);
+                }
+                if values.iter().any(Value::is_null) {
+                    return Some(Value::Null);
+                }
+                let (Value::String(unit), Some(value)) = (&values[0], values.get(1)) else {
+                    return None;
+                };
+                let overrides = match values.get(2) {
+                    None => &BTreeMap::new(),
+                    Some(Value::Map(overrides)) => overrides.as_ref(),
+                    Some(_) => return None,
+                };
+                temporal::truncate(kind, unit, value, overrides)
+            }
+            BuiltinFunction::DurationBetween
+            | BuiltinFunction::DurationInMonths
+            | BuiltinFunction::DurationInDays
+            | BuiltinFunction::DurationInSeconds => {
+                let measure = match function {
+                    BuiltinFunction::DurationBetween => temporal::Measure::Duration,
+                    BuiltinFunction::DurationInMonths => temporal::Measure::Months,
+                    BuiltinFunction::DurationInDays => temporal::Measure::Days,
+                    _ => temporal::Measure::Seconds,
+                };
+                let from = self.eval_expr(args.first()?, chunk, row)?;
+                let to = self.eval_expr(args.get(1)?, chunk, row)?;
+                if from.is_null() || to.is_null() {
+                    return Some(Value::Null);
+                }
+                temporal::between(measure, &from, &to)
+            }
+            BuiltinFunction::DatetimeFromEpoch => {
+                let seconds = self.eval_expr(args.first()?, chunk, row)?;
+                let nanoseconds = self.eval_expr(args.get(1)?, chunk, row)?;
+                match (seconds, nanoseconds) {
+                    (Value::Null, _) | (_, Value::Null) => Some(Value::Null),
+                    (Value::Int64(seconds), Value::Int64(nanoseconds)) => {
+                        temporal::from_epoch(seconds, nanoseconds)
+                    }
+                    _ => None,
+                }
+            }
+            BuiltinFunction::DatetimeFromEpochMillis => {
+                match self.eval_expr(args.first()?, chunk, row)? {
+                    Value::Null => Some(Value::Null),
+                    Value::Int64(millis) => temporal::from_epoch(
+                        millis.div_euclid(1_000),
+                        millis.rem_euclid(1_000) * 1_000_000,
+                    ),
+                    _ => None,
+                }
+            }
+            BuiltinFunction::DateTransaction
+            | BuiltinFunction::DateStatement
+            | BuiltinFunction::DateRealtime
+            | BuiltinFunction::TimeTransaction
+            | BuiltinFunction::TimeStatement
+            | BuiltinFunction::TimeRealtime
+            | BuiltinFunction::LocalTimeTransaction
+            | BuiltinFunction::LocalTimeStatement
+            | BuiltinFunction::LocalTimeRealtime
+            | BuiltinFunction::DatetimeTransaction
+            | BuiltinFunction::DatetimeStatement
+            | BuiltinFunction::DatetimeRealtime
+            | BuiltinFunction::LocalDatetimeTransaction
+            | BuiltinFunction::LocalDatetimeStatement
+            | BuiltinFunction::LocalDatetimeRealtime => {
+                use BuiltinFunction as F;
+                let kind = match function {
+                    F::DateTransaction | F::DateStatement | F::DateRealtime => temporal::Kind::Date,
+                    F::TimeTransaction | F::TimeStatement | F::TimeRealtime => temporal::Kind::Time,
+                    F::LocalTimeTransaction | F::LocalTimeStatement | F::LocalTimeRealtime => {
+                        temporal::Kind::LocalTime
+                    }
+                    F::DatetimeTransaction | F::DatetimeStatement | F::DatetimeRealtime => {
+                        temporal::Kind::Datetime
+                    }
+                    _ => temporal::Kind::LocalDatetime,
+                };
+                let clock = self.session_context.statement_clock;
+                let instant = match function {
+                    F::DateTransaction
+                    | F::TimeTransaction
+                    | F::LocalTimeTransaction
+                    | F::DatetimeTransaction
+                    | F::LocalDatetimeTransaction => clock.transaction_instant(),
+                    F::DateStatement
+                    | F::TimeStatement
+                    | F::LocalTimeStatement
+                    | F::DatetimeStatement
+                    | F::LocalDatetimeStatement => clock.instant(),
+                    _ => grafeo_common::types::Timestamp::now(),
+                };
+                let zone = match args.first() {
+                    Some(arg) => Some(self.eval_expr(arg, chunk, row)?),
+                    None => None,
+                };
+                temporal::clock(kind, instant, zone.as_ref())
             }
             _ => None,
         }
